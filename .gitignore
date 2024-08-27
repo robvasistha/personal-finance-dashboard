@@ -1,0 +1,18 @@
+# Python
+*.pyc
+__pycache__/
+
+# Django
+*.log
+db.sqlite3
+
+# Virtual Environment
+env/
+venv/
+pfinance/
+
+# VS Code
+.vscode/
+
+# MacOS
+.DS_Store
