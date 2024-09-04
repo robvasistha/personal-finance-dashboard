@@ -1,12 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Dashboard</title>
-</head>
-<body>
-    <h1>Finance Dashboard</h1>
-    <p>This is the finance dashboard.</p>
-</body>
-</html>
+{% extends 'financeapp/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <header class="text-center mb-5">
+        <h1 class="display-6 fw-bold">Your Finance Overview</h1>
+        <p class="lead">A quick glance at your accounts and recent transactions.</p>
+    </header>
+</div>
+
+<div class="container">
+    <div class="row">
+        <!-- Left Side: Account Balance -->
+        <div class="col-md-6 d-flex align-items-stretch mb-4">
+            <div class="card border-0 shadow-sm p-4 flex-fill">
+                <h3 class="mb-3">Account Balance</h3>
+                <h1 class="display-4 text-primary">{{ total_balance|default:"$0.00" }}</h1>
+                <p class="text-muted">Growth From Yesterday: {{ growth|default:"0%" }}</p>
+                <div class="mt-auto">
+                    <button class="btn btn-dark btn-lg w-100">Withdraw Amount</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Recent Transactions -->
+        <div class="col-md-6 d-flex align-items-stretch mb-4">
+            <div class="card border-0 shadow-sm p-4 flex-fill">
+                <h3 class="mb-3">Recent Transactions</h3>
+                <ul class="list-group">
+                    {% for transaction in recent_transactions %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ transaction.description }}</span>
+                        <span class="badge bg-success">{{ transaction.amount }}</span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center">No recent transactions found.</li>
+                    {% endfor %}
+                </ul>
+                <div class="mt-auto">
+                    <button class="btn btn-primary btn-lg w-100 mt-3">View All Transactions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

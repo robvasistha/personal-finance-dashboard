@@ -1,0 +1,13 @@
+{% extends 'financeapp/base.html' %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <h1>Welcome to Your Finance Dashboard</h1>
+    <p class="lead">Easily manage your accounts, track transactions, and set budgets.</p>
+    <a href="{% url 'accounts' %}" class="btn btn-primary btn-lg">View Accounts</a>
+</div>
+{% endblock %}

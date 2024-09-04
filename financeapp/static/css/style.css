@@ -1,0 +1,57 @@
+/* General Styles */
+body {
+    font-family: 'Helvetica Neue', sans-serif;
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+h1, h2, p {
+    margin: 0;
+    padding: 0;
+}
+
+p {
+    margin-top: 10px;
+    font-size: 1.1rem;
+}
+
+header h1 span {
+    color: #007bff;
+}
+
+header p.lead {
+    margin-top: 15px;
+    font-size: 1.5rem;
+}
+
+/* Card Styles */
+/* Ensure that the container heights match */
+.card {
+    height: 100%;
+}
+
+/* Flexbox ensures the buttons align at the bottom */
+.card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+
+.btn-lg {
+    border-radius: 25px;
+}
+
+.btn-dark {
+    background-color: #212529;
+    border-color: #212529;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover, .btn-dark:hover {
+    opacity: 0.8;
+}
