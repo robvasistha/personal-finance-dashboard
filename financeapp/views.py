@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from plaid import ApiClient,Configuration
 from plaid.api import plaid_api
 from plaid.model.accounts_get_request import AccountsGetRequest
@@ -11,6 +11,9 @@ from .models import Account, Transaction
 from django.utils import timezone
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login
+from django.contrib.auth.forms import AuthenticationForm
+from .forms import CustomUserCreationForm, CustomAuthenticationForm
 import csv
 
 
@@ -137,7 +140,7 @@ def fetch_account_balances(request):
 @login_required
 def accounts_page(request):
     # Fetch the accounts associated with the logged-in user
-    accounts = Account.objects.filter(user=request.user)
+    accounts = Account.objects.filter(user=request.user).prefetch_related('transaction_set')
     return render(request, 'financeapp/accounts.html', {'accounts': accounts})
 
 
@@ -170,3 +173,13 @@ def download_csv(request, account_id):
         writer.writerow([transaction.date, transaction.description, transaction.amount, transaction.category])
 
     return response
+
+def register(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('login')  # Redirect to login page after successful registration
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'financeapp/register.html', {'form': form})

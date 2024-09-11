@@ -131,5 +131,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/accounts/'  # After login, users will be redirected to the accounts page
+LOGIN_REDIRECT_URL = 'home'  # After login, users will be redirected to the accounts page
 
+AUTHENTICATION_BACKENDS = ['financeapp.backends.EmailOrUsernameModelBackend', 'django.contrib.auth.backends.ModelBackend']
