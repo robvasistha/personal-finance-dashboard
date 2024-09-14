@@ -16,6 +16,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 import csv
 
+import json
+
 
 # Set up Plaid client
 configuration = Configuration(
@@ -139,8 +141,29 @@ def fetch_account_balances(request):
 
 @login_required
 def accounts_page(request):
-    # Fetch the accounts associated with the logged-in user
-    accounts = Account.objects.filter(user=request.user).prefetch_related('transaction_set')
+    user_accounts = Account.objects.filter(user=request.user)
+    accounts = []
+    for account in user_accounts:
+        transactions = Transaction.objects.filter(account=account).order_by('date')
+
+        # Prepare data for chart (balance over time)
+        dates = [transaction.date.strftime("%Y-%m-%d") for transaction in transactions]
+        balances = [float(transaction.amount) for transaction in transactions]
+
+        # Ensure there are no invalid JSON issues
+        chart_dates = json.dumps(dates) if dates else "[]"
+        chart_balances = json.dumps(balances) if balances else "[]"
+
+        accounts.append({
+            'name': account.name,
+            'balance': account.balance,
+            'account_type': account.account_type,
+            'available_balance': account.balance,
+            'transactions': transactions,
+            'chart_dates': chart_dates,
+            'chart_balances': chart_balances,
+        })
+
     return render(request, 'financeapp/accounts.html', {'accounts': accounts})
 
 

@@ -26,10 +26,10 @@
                             <h3 class="mb-3">Account Balance: ${{ account.balance }}</h3>
                             <h5>Account Type: {{ account.account_type|capfirst }}</h5>
                             <h5>Available Balance: ${{ account.available_balance }}</h5>
-
+                        
                             <!-- Transaction List -->
                             <h4 class="mt-4">Recent Transactions</h4>
-                            {% if account.transaction_set.all %}
+                            {% if account.transactions %}
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
@@ -39,7 +39,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for transaction in account.transaction_set.all %}
+                                    {% for transaction in account.transactions %}
                                     <tr>
                                         <td>{{ transaction.date }}</td>
                                         <td>{{ transaction.description }}</td>
@@ -51,6 +51,13 @@
                             {% else %}
                             <p>No recent transactions found.</p>
                             {% endif %}
+                        
+                            <!-- Balance Over Time Chart -->
+                            {% if account.chart_dates and account.chart_balances %}
+                            <h4 class="mt-4">Balance Over Time</h4>
+                            <canvas id="chart{{ forloop.counter }}"></canvas>
+                            <div data-chart-dates="{{ account.chart_dates }}" data-chart-balances="{{ account.chart_balances }}" id="chart-data-{{ forloop.counter }}"></div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -59,6 +66,10 @@
         </div>
     </div>
 </div>
+
+<!-- Include necessary scripts in the correct order -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
 <!-- Custom JS for independent toggle behavior with smooth transition -->
 <script>
@@ -76,6 +87,63 @@
             arrowIcon.classList.add('fa-chevron-down');
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Loop through each account's chart
+        const charts = document.querySelectorAll("[id^='chart-data-']");
+        charts.forEach(function(chartElem, index) {
+            const chartDatesRaw = chartElem.dataset.chartDates;
+            const chartBalancesRaw = chartElem.dataset.chartBalances;
+
+            console.log('Raw chart data for account index ' + (index + 1) + ': Dates: ' + chartDatesRaw + ' Balances: ' + chartBalancesRaw);
+
+            // Check if the data is valid and not empty before parsing
+            if (chartDatesRaw && chartBalancesRaw) {
+                try {
+                    const chartDates = JSON.parse(chartDatesRaw);
+                    const chartBalances = JSON.parse(chartBalancesRaw);
+
+                    console.log('Parsed chart data for account index ' + (index + 1) + ': Dates: ', chartDates, 'Balances: ', chartBalances);
+
+                    if (chartDates.length > 0 && chartBalances.length > 0) {
+                        const ctx = document.getElementById('chart' + (index + 1)).getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: chartDates,
+                                datasets: [{
+                                    label: 'Balance',
+                                    data: chartBalances,
+                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                scales: {
+                                    x: {
+                                        type: 'time', // Ensure date handling on X-axis
+                                        time: {
+                                            unit: 'day'
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: false
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        console.error('No chart data available for account index:', index + 1);
+                    }
+                } catch (e) {
+                    console.error('Error parsing JSON for account index:', index + 1, e);
+                }
+            } else {
+                console.error('Empty or invalid data for account index:', index + 1);
+            }
+        });
+    });
 </script>
 
 <!-- Include FontAwesome for the arrow icon -->
