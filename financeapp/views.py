@@ -9,12 +9,13 @@ from decouple import config
 from datetime import datetime, timedelta, date
 from .models import Account, Transaction
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 import csv
+from decimal import Decimal
 
 import json
 
@@ -141,30 +142,98 @@ def fetch_account_balances(request):
 
 @login_required
 def accounts_page(request):
+    if request.method == 'POST':
+        account_id = request.POST.get('account_id')
+        amount = float(request.POST.get('amount'))
+        account = Account.objects.get(id=account_id, user=request.user)
+
+        if amount > 0 and amount <= 25000:
+            account.balance += amount
+            account.save()
+
+            # Create a new transaction
+            Transaction.objects.create(
+                account=account,
+                date=timezone.now(),
+                description="Deposit",
+                amount=amount,
+            )
+
+            # Prepare updated data to send back to the frontend
+            transactions = Transaction.objects.filter(account=account).order_by('date')
+            transaction_list = [{
+                'date': transaction.date.strftime("%Y-%m-%d"),
+                'description': transaction.description,
+                'amount': f"${transaction.amount}"
+            } for transaction in transactions]
+
+            # Update chart data
+            total_transaction_sum = sum(transaction.amount for transaction in transactions)
+            start_balance = float(account.balance) - total_transaction_sum
+            dates = []
+            balances = []
+            current_balance = start_balance
+
+            for transaction in transactions:
+                dates.append(transaction.date.strftime("%Y-%m-%d"))
+                balances.append(current_balance)
+                current_balance += transaction.amount
+
+            dates.append(timezone.now().strftime("%Y-%m-%d"))
+            balances.append(account.balance)
+
+            return JsonResponse({
+                'account_id': account_id,
+                'new_balance': account.balance,
+                'transactions': transaction_list,
+                'chart_data': {
+                    'dates': dates,
+                    'balances': balances,
+                }
+            })
+
+    # Regular GET request handling
     user_accounts = Account.objects.filter(user=request.user)
     accounts = []
+
     for account in user_accounts:
         transactions = Transaction.objects.filter(account=account).order_by('date')
 
         # Prepare data for chart (balance over time)
-        dates = [transaction.date.strftime("%Y-%m-%d") for transaction in transactions]
-        balances = [float(transaction.amount) for transaction in transactions]
+        dates = []
+        balances = []
+        current_balance = float(account.balance)
 
-        # Ensure there are no invalid JSON issues
-        chart_dates = json.dumps(dates) if dates else "[]"
-        chart_balances = json.dumps(balances) if balances else "[]"
+        transactions = list(transactions)[::-1]
+        for transaction in transactions:
+            dates.insert(0, transaction.date.strftime("%Y-%m-%d"))
+            balances.insert(0, float(current_balance))
+            current_balance -= float(transaction.amount)
+
+        if transactions:
+            first_transaction_date = transactions[-1].date
+            dates.insert(0, first_transaction_date.strftime("%Y-%m-%d"))
+            balances.insert(0, float(current_balance))
+
+        today = timezone.now().strftime("%Y-%m-%d")
+        if not dates or dates[-1] != today:
+            dates.append(today)
+            balances.append(float(account.balance))
 
         accounts.append({
+            'id': account.id,
             'name': account.name,
             'balance': account.balance,
             'account_type': account.account_type,
             'available_balance': account.balance,
-            'transactions': transactions,
-            'chart_dates': chart_dates,
-            'chart_balances': chart_balances,
+            'transactions': transactions[::-1],
+            'chart_dates': json.dumps(dates),
+            'chart_balances': json.dumps(balances),
         })
 
     return render(request, 'financeapp/accounts.html', {'accounts': accounts})
+
+
 
 
 def account_transactions(request, account_id):
@@ -206,3 +275,134 @@ def register(request):
     else:
         form = CustomUserCreationForm()
     return render(request, 'financeapp/register.html', {'form': form})
+
+
+@login_required
+def deposit_amount(request):
+    if request.method == "POST":
+        amount = request.POST.get('amount')
+        account_id = request.POST.get('account_id')
+
+        if not account_id:
+            return JsonResponse({'error': 'Account ID is missing'}, status=400)
+
+        try:
+            account = Account.objects.get(id=account_id, user=request.user)
+        except Account.DoesNotExist:
+            return JsonResponse({'error': 'Invalid account'}, status=400)
+
+        try:
+            amount = Decimal(amount)  # Convert to Decimal
+        except:
+            return JsonResponse({'error': 'Invalid amount'}, status=400)
+
+        if amount > 0 and amount <= Decimal('25000'):
+            # Update account balance and save the transaction
+            account.balance += amount
+            account.save()
+
+            # Create a new transaction
+            Transaction.objects.create(
+                account=account,
+                date=timezone.now(),
+                description="Deposit",
+                amount=amount
+            )
+
+            # Fetch updated transactions and return success response
+            transactions = Transaction.objects.filter(account=account).order_by('date')
+            transaction_list = [{
+                'date': transaction.date.strftime("%Y-%m-%d"),
+                'description': transaction.description,
+                'amount': f"${transaction.amount}"
+            } for transaction in transactions]
+
+            # Prepare chart data
+            dates = []
+            balances = []
+            current_balance = float(account.balance)
+
+            for transaction in transactions:
+                dates.append(transaction.date.strftime("%Y-%m-%d"))
+                balances.append(current_balance)
+                current_balance -= float(transaction.amount)
+
+            dates.append(timezone.now().strftime("%Y-%m-%d"))
+            balances.append(account.balance)
+
+            return JsonResponse({
+                'new_balance': account.balance,
+                'transactions': transaction_list,
+                'chart_data': {
+                    'dates': dates,
+                    'balances': balances,
+                }
+            })
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+@login_required
+def withdraw_amount(request):
+    if request.method == "POST":
+        amount = float(request.POST.get('amount'))
+        account_id = request.POST.get('account_id')
+
+        if not account_id:
+            return JsonResponse({'error': 'Account ID is missing'}, status=400)
+
+        try:
+            account = Account.objects.get(id=account_id, user=request.user)
+        except Account.DoesNotExist:
+            return JsonResponse({'error': 'Invalid account'}, status=400)
+
+        if amount <= 0 or amount > 5000:
+            return JsonResponse({'error': 'Invalid amount. You can only withdraw up to $5000 per day.'}, status=400)
+
+        if account.balance < amount:
+            return JsonResponse({'error': 'Insufficient balance.'}, status=400)
+
+        # Deduct the withdrawal amount from the account balance
+        account.balance -= amount
+        account.save()
+
+        # Create a new withdrawal transaction
+        Transaction.objects.create(
+            account=account,
+            date=timezone.now(),
+            description="Withdrawal",
+            amount=-amount  # Negative for withdrawals
+        )
+
+        # Fetch updated transactions and return success response
+        transactions = Transaction.objects.filter(account=account).order_by('date')
+        transaction_list = [{
+            'date': transaction.date.strftime("%Y-%m-%d"),
+            'description': transaction.description,
+            'amount': f"${transaction.amount}"
+        } for transaction in transactions]
+
+        # Prepare chart data
+        dates = []
+        balances = []
+        current_balance = float(account.balance)
+
+        for transaction in transactions:
+            dates.append(transaction.date.strftime("%Y-%m-%d"))
+            balances.append(current_balance)
+            current_balance -= float(transaction.amount)
+
+        dates.append(timezone.now().strftime("%Y-%m-%d"))
+        balances.append(account.balance)
+
+        return JsonResponse({
+            'new_balance': account.balance,
+            'transactions': transaction_list,
+            'chart_data': {
+                'dates': dates,
+                'balances': balances,
+            }
+        })
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+

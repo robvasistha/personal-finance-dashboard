@@ -21,7 +21,7 @@ class Transaction(models.Model):
     Represents a transaction that occurs within an account.
     """
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
-    plaid_transaction_id = models.CharField(max_length=100, unique=True)  # Plaid's transaction ID
+    plaid_transaction_id = models.CharField(max_length=100, unique=True, null=True, blank=True)  # Plaid's Transaction ID
     date = models.DateTimeField()
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
