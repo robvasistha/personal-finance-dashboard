@@ -15,6 +15,7 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
 import csv
+from collections import defaultdict
 from decimal import Decimal
 
 import json
@@ -148,7 +149,7 @@ def accounts_page(request):
         account = Account.objects.get(id=account_id, user=request.user)
 
         if amount > 0 and amount <= 25000:
-            account.balance += amount
+            account.balance += Decimal(amount)
             account.save()
 
             # Create a new transaction
@@ -156,7 +157,7 @@ def accounts_page(request):
                 account=account,
                 date=timezone.now(),
                 description="Deposit",
-                amount=amount,
+                amount=Decimal(amount),
             )
 
             # Prepare updated data to send back to the frontend
@@ -167,20 +168,32 @@ def accounts_page(request):
                 'amount': f"${transaction.amount}"
             } for transaction in transactions]
 
-            # Update chart data
-            total_transaction_sum = sum(transaction.amount for transaction in transactions)
-            start_balance = float(account.balance) - total_transaction_sum
+            # Group transactions by date to keep only the latest for each day
+            grouped_transactions = defaultdict(list)
+            for transaction in transactions:
+                transaction_date = transaction.date.date()
+                grouped_transactions[transaction_date].append(transaction)
+
+            filtered_transactions = [transactions[-1] for date, transactions in grouped_transactions.items()]
+
+            # Initialize the initial offset
+            initial_offset = float(account.balance) - sum(float(transaction.amount) for transaction in filtered_transactions)
+
             dates = []
             balances = []
-            current_balance = start_balance
+            current_balance = float(account.balance)
 
-            for transaction in transactions:
+            # Iterate through filtered transactions but do not add the initial offset to the chart
+            for transaction in filtered_transactions:
                 dates.append(transaction.date.strftime("%Y-%m-%d"))
                 balances.append(current_balance)
-                current_balance += transaction.amount
+                current_balance -= float(transaction.amount)
 
-            dates.append(timezone.now().strftime("%Y-%m-%d"))
-            balances.append(account.balance)
+            # Add today's date and current balance if needed
+            today = timezone.now().strftime("%Y-%m-%d")
+            if dates and dates[-1] != today:
+                dates.append(today)
+                balances.append(account.balance)
 
             return JsonResponse({
                 'account_id': account_id,
@@ -199,24 +212,32 @@ def accounts_page(request):
     for account in user_accounts:
         transactions = Transaction.objects.filter(account=account).order_by('date')
 
+        # Group transactions by date to only keep the last transaction per day
+        grouped_transactions = defaultdict(list)
+        for transaction in transactions:
+            transaction_date = transaction.date.date()
+            grouped_transactions[transaction_date].append(transaction)
+
+        # Only keep the last transaction for each day
+        filtered_transactions = [transactions[-1] for date, transactions in grouped_transactions.items()]
+
+        # Initialize the initial offset (this is the balance before the first transaction)
+        initial_offset = float(account.balance) - sum(float(transaction.amount) for transaction in filtered_transactions)
+
         # Prepare data for chart (balance over time)
         dates = []
         balances = []
         current_balance = float(account.balance)
 
-        transactions = list(transactions)[::-1]
-        for transaction in transactions:
+        # Iterate through transactions without inserting the initial offset into the dates/balances list
+        for transaction in filtered_transactions[::-1]:
             dates.insert(0, transaction.date.strftime("%Y-%m-%d"))
             balances.insert(0, float(current_balance))
             current_balance -= float(transaction.amount)
 
-        if transactions:
-            first_transaction_date = transactions[-1].date
-            dates.insert(0, first_transaction_date.strftime("%Y-%m-%d"))
-            balances.insert(0, float(current_balance))
-
+        # Add today's balance if there are transactions today
         today = timezone.now().strftime("%Y-%m-%d")
-        if not dates or dates[-1] != today:
+        if transactions and dates[-1] != today:
             dates.append(today)
             balances.append(float(account.balance))
 
