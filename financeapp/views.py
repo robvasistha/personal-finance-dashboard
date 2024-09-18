@@ -148,64 +148,27 @@ def accounts_page(request):
         amount = float(request.POST.get('amount'))
         account = Account.objects.get(id=account_id, user=request.user)
 
-        if amount > 0 and amount <= 25000:
+        if 'deposit' in request.path:
             account.balance += Decimal(amount)
-            account.save()
+            description = "Deposit"
+        elif 'withdraw' in request.path:
+            account.balance -= Decimal(amount)
+            description = "Withdrawal"
+        
+        account.save()
 
-            # Create a new transaction
-            Transaction.objects.create(
-                account=account,
-                date=timezone.now(),
-                description="Deposit",
-                amount=Decimal(amount),
-            )
+        # Create the transaction
+        Transaction.objects.create(
+            account=account,
+            date=timezone.now(),
+            description=description,
+            amount=Decimal(amount)
+        )
+        
+        # Redirect back to the accounts page after successful transaction
+        return redirect('accounts_page')
 
-            # Prepare updated data to send back to the frontend
-            transactions = Transaction.objects.filter(account=account).order_by('date')
-            transaction_list = [{
-                'date': transaction.date.strftime("%Y-%m-%d"),
-                'description': transaction.description,
-                'amount': f"${transaction.amount}"
-            } for transaction in transactions]
-
-            # Group transactions by date to keep only the latest for each day
-            grouped_transactions = defaultdict(list)
-            for transaction in transactions:
-                transaction_date = transaction.date.date()
-                grouped_transactions[transaction_date].append(transaction)
-
-            filtered_transactions = [transactions[-1] for date, transactions in grouped_transactions.items()]
-
-            # Initialize the initial offset
-            initial_offset = float(account.balance) - sum(float(transaction.amount) for transaction in filtered_transactions)
-
-            dates = []
-            balances = []
-            current_balance = float(account.balance)
-
-            # Iterate through filtered transactions but do not add the initial offset to the chart
-            for transaction in filtered_transactions:
-                dates.append(transaction.date.strftime("%Y-%m-%d"))
-                balances.append(current_balance)
-                current_balance -= float(transaction.amount)
-
-            # Add today's date and current balance if needed
-            today = timezone.now().strftime("%Y-%m-%d")
-            if dates and dates[-1] != today:
-                dates.append(today)
-                balances.append(account.balance)
-
-            return JsonResponse({
-                'account_id': account_id,
-                'new_balance': account.balance,
-                'transactions': transaction_list,
-                'chart_data': {
-                    'dates': dates,
-                    'balances': balances,
-                }
-            })
-
-    # Regular GET request handling
+    # Existing logic for GET requests (account display and chart generation)
     user_accounts = Account.objects.filter(user=request.user)
     accounts = []
 
@@ -218,24 +181,20 @@ def accounts_page(request):
             transaction_date = transaction.date.date()
             grouped_transactions[transaction_date].append(transaction)
 
-        # Only keep the last transaction for each day
         filtered_transactions = [transactions[-1] for date, transactions in grouped_transactions.items()]
 
-        # Initialize the initial offset (this is the balance before the first transaction)
-        initial_offset = float(account.balance) - sum(float(transaction.amount) for transaction in filtered_transactions)
+        # Start with the current balance (use actual balance for consistency)
+        current_balance = float(account.balance)
 
         # Prepare data for chart (balance over time)
         dates = []
         balances = []
-        current_balance = float(account.balance)
 
-        # Iterate through transactions without inserting the initial offset into the dates/balances list
         for transaction in filtered_transactions[::-1]:
             dates.insert(0, transaction.date.strftime("%Y-%m-%d"))
             balances.insert(0, float(current_balance))
             current_balance -= float(transaction.amount)
 
-        # Add today's balance if there are transactions today
         today = timezone.now().strftime("%Y-%m-%d")
         if transactions and dates[-1] != today:
             dates.append(today)
@@ -253,6 +212,14 @@ def accounts_page(request):
         })
 
     return render(request, 'financeapp/accounts.html', {'accounts': accounts})
+
+
+
+
+
+
+
+
 
 
 
@@ -305,17 +272,17 @@ def deposit_amount(request):
         account_id = request.POST.get('account_id')
 
         if not account_id:
-            return JsonResponse({'error': 'Account ID is missing'}, status=400)
+            return redirect('accounts_page')  # Redirect on error
 
         try:
             account = Account.objects.get(id=account_id, user=request.user)
         except Account.DoesNotExist:
-            return JsonResponse({'error': 'Invalid account'}, status=400)
+            return redirect('accounts_pae')  # Redirect on invalid account
 
         try:
             amount = Decimal(amount)  # Convert to Decimal
         except:
-            return JsonResponse({'error': 'Invalid amount'}, status=400)
+            return redirect('accounts')  # Redirect on invalid amount
 
         if amount > 0 and amount <= Decimal('25000'):
             # Update account balance and save the transaction
@@ -330,100 +297,75 @@ def deposit_amount(request):
                 amount=amount
             )
 
-            # Fetch updated transactions and return success response
-            transactions = Transaction.objects.filter(account=account).order_by('date')
-            transaction_list = [{
-                'date': transaction.date.strftime("%Y-%m-%d"),
-                'description': transaction.description,
-                'amount': f"${transaction.amount}"
-            } for transaction in transactions]
+    return redirect('accounts')  # Always redirect after processing
 
-            # Prepare chart data
-            dates = []
-            balances = []
-            current_balance = float(account.balance)
 
-            for transaction in transactions:
-                dates.append(transaction.date.strftime("%Y-%m-%d"))
-                balances.append(current_balance)
-                current_balance -= float(transaction.amount)
-
-            dates.append(timezone.now().strftime("%Y-%m-%d"))
-            balances.append(account.balance)
-
-            return JsonResponse({
-                'new_balance': account.balance,
-                'transactions': transaction_list,
-                'chart_data': {
-                    'dates': dates,
-                    'balances': balances,
-                }
-            })
-
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
-    
 @login_required
 def withdraw_amount(request):
     if request.method == "POST":
-        amount = float(request.POST.get('amount'))
+        amount = request.POST.get('amount')
         account_id = request.POST.get('account_id')
 
         if not account_id:
-            return JsonResponse({'error': 'Account ID is missing'}, status=400)
+            return redirect('accounts')  # Redirect on error
 
         try:
             account = Account.objects.get(id=account_id, user=request.user)
         except Account.DoesNotExist:
-            return JsonResponse({'error': 'Invalid account'}, status=400)
+            return redirect('accounts')  # Redirect on invalid account
 
-        if amount <= 0 or amount > 5000:
-            return JsonResponse({'error': 'Invalid amount. You can only withdraw up to $5000 per day.'}, status=400)
+        try:
+            amount = Decimal(amount)  # Convert to Decimal
+        except:
+            return redirect('accounts')  # Redirect on invalid amount
 
-        if account.balance < amount:
-            return JsonResponse({'error': 'Insufficient balance.'}, status=400)
+        # Max withdrawal amount logic
+        if amount > 0 and amount <= Decimal('5000'):
+            if account.balance >= amount:
+                # Update account balance and save the transaction
+                account.balance -= amount
+                account.save()
 
-        # Deduct the withdrawal amount from the account balance
-        account.balance -= amount
-        account.save()
+                # Create a new transaction
+                Transaction.objects.create(
+                    account=account,
+                    date=timezone.now(),
+                    description="Withdrawal",
+                    amount=-amount  # Negative for withdrawal
+                )
 
-        # Create a new withdrawal transaction
-        Transaction.objects.create(
-            account=account,
-            date=timezone.now(),
-            description="Withdrawal",
-            amount=-amount  # Negative for withdrawals
-        )
+            else:
+                return redirect('accounts')  # Redirect on insufficient funds
 
-        # Fetch updated transactions and return success response
-        transactions = Transaction.objects.filter(account=account).order_by('date')
-        transaction_list = [{
-            'date': transaction.date.strftime("%Y-%m-%d"),
-            'description': transaction.description,
-            'amount': f"${transaction.amount}"
-        } for transaction in transactions]
+    return redirect('accounts')
 
-        # Prepare chart data
-        dates = []
-        balances = []
-        current_balance = float(account.balance)
+@login_required
+def generate_demo_accounts(request):
+    """
+    Generate demo accounts using the Plaid API and associate them with the current user.
+    """
+    if request.method == 'POST':
+        try:
+            # Plaid API call to simulate accounts and transactions
+            # Make the necessary Plaid API requests here, e.g., fetching accounts and transactions
+            access_token = config('PLAID_ACCESS_TOKEN')
+            # Example: Simulate account generation using the Plaid API
+            accounts_request = AccountsGetRequest(access_token=access_token)
+            response = client.accounts_get(accounts_request)
 
-        for transaction in transactions:
-            dates.append(transaction.date.strftime("%Y-%m-%d"))
-            balances.append(current_balance)
-            current_balance -= float(transaction.amount)
+            # Loop over the accounts and save them to the user's account list
+            for account_data in response['accounts']:
+                Account.objects.create(
+                    user=request.user,
+                    name=account_data['name'],
+                    balance=account_data['balances']['current'],
+                    account_type=account_data['subtype']
+                )
 
-        dates.append(timezone.now().strftime("%Y-%m-%d"))
-        balances.append(account.balance)
-
-        return JsonResponse({
-            'new_balance': account.balance,
-            'transactions': transaction_list,
-            'chart_data': {
-                'dates': dates,
-                'balances': balances,
-            }
-        })
+            # After generating demo accounts, redirect to the accounts page
+            return redirect('accounts_page')
+        except Exception as e:
+            print(f"Error generating demo accounts: {e}")
+            return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
-    
-

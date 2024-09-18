@@ -28,57 +28,24 @@
                             <h5>Available Balance: <span id="availableBalance{{ forloop.counter }}">${{ account.available_balance }}</span></h5>
                             
                             <h4 class="mt-4">Actions</h4>
-                            <button class="btn btn-primary" onclick="showDepositModal('{{ account.id }}', '{{ forloop.counter }}')">Deposit Amount</button>
-                            <button class="btn btn-danger" onclick="showWithdrawModal('{{ account.id }}', '{{ forloop.counter }}')">Withdraw Amount</button>
+                            <!-- Deposit Form -->
+                            <form method="POST" action="/accounts/deposit/" class="mb-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="account_id" value="{{ account.id }}">
+                                <label for="depositAmount{{ forloop.counter }}">Enter Deposit Amount (Max $25,000):</label>
+                                <input type="number" id="depositAmount{{ forloop.counter }}" name="amount" class="form-control" max="25000" step="0.01" required>
+                                <button type="submit" class="btn btn-primary mt-2">Deposit Amount</button>
+                            </form>
 
-                            <!-- Modal for Deposit -->
-                            <div class="modal fade" id="depositModal" tabindex="-1" role="dialog">
-                                <div class="modal-dialog" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Deposit Money</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <label for="depositAmount">Enter Amount (Max $25,000):</label>
-                                            <input type="number" id="depositAmount" class="form-control" max="25000" step="0.01">
-                                            <input type="hidden" id="currentAccountId" value="">  <!-- Holds the account ID -->
-                                            <input type="hidden" id="currentLoopCounter" value="">
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-primary" onclick="depositAmount()">Submit</button>
-                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Withdraw Form -->
+                            <form method="POST" action="/accounts/withdraw/">
+                                {% csrf_token %}
+                                <input type="hidden" name="account_id" value="{{ account.id }}">
+                                <label for="withdrawAmount{{ forloop.counter }}">Enter Withdraw Amount (Max $5,000):</label>
+                                <input type="number" id="withdrawAmount{{ forloop.counter }}" name="amount" class="form-control" max="5000" step="0.01" required>
+                                <button type="submit" class="btn btn-danger mt-2">Withdraw Amount</button>
+                            </form>
 
-                            <!-- Modal for Withdraw -->
-                            <div class="modal fade" id="withdrawModal" tabindex="-1" role="dialog">
-                                <div class="modal-dialog" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Withdraw Money</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <label for="withdrawAmount">Enter Amount (Max $5000):</label>
-                                            <input type="number" id="withdrawAmount" class="form-control" max="5000" step="0.01">
-                                            <input type="hidden" id="currentAccountIdWithdraw" value="">
-                                            <input type="hidden" id="currentLoopCounterWithdraw" value="">
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-primary" onclick="withdrawAmount()">Submit</button>
-                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
                             <!-- Transaction List -->
                             <h4 class="mt-4">Recent Transactions</h4>
                             {% if account.transactions %}
@@ -93,7 +60,8 @@
                                 <tbody>
                                     {% for transaction in account.transactions %}
                                     <tr>
-                                        <td>{{ transaction.date }}</td>
+                                        <!-- Updated date format -->
+                                        <td>{{ transaction.date|date:"M j, Y, g:i a" }}</td>
                                         <td>{{ transaction.description }}</td>
                                         <td>${{ transaction.amount }}</td>
                                     </tr>
@@ -121,171 +89,30 @@
     </div>
 </div>
 
-<!-- Add jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Include necessary scripts in the correct order -->
+<!-- Include necessary scripts for charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
-<!-- Custom JS for handling deposits and withdrawals -->
+<!-- Custom JS for toggling account details and displaying charts -->
 <script>
-    function showDepositModal(accountId, loopCounter) {
-        console.log("Opening modal for account ID:", accountId);  // Debugging log to check accountId
-        document.getElementById('currentAccountId').value = accountId;  // Set the account ID to the hidden field
-        document.getElementById('currentLoopCounter').value = loopCounter;  // Set the loop counter to another hidden field
-        console.log(`Loop counter being passed: ${loopCounter}`);
-        const depositModal = new bootstrap.Modal(document.getElementById('depositModal'), {});
-        depositModal.show();
-    }
-    
-    function depositAmount() {
-        const depositValue = parseFloat(document.getElementById('depositAmount').value);
-        const accountId = document.getElementById('currentAccountId').value;  // Make sure this gets the account ID
-        const loopCounter = document.getElementById('currentLoopCounter').value;
-    
-        console.log("Deposit Data:", {amount: depositValue, account_id: accountId});  // Debugging log
-    
-        if (depositValue <= 0 || depositValue > 25000 || isNaN(depositValue)) {
-            alert("Please enter a valid deposit amount (max $25,000).");
-            return;
-        }
-    
-        $.ajax({
-            type: "POST",
-            url: "/accounts/deposit/",  // This should match the URL pattern in urls.py
-            data: {
-                'amount': depositValue,
-                'account_id': accountId,  // Pass the account ID to the server
-                'csrfmiddlewaretoken': '{{ csrf_token }}',
-            },
-            success: function(response) {
-                console.log("Deposit successful:", response);
-            
-                // Update available balance (already works)
-                const availableBalanceElem = document.getElementById(`availableBalance${loopCounter}`);
-                availableBalanceElem.textContent = `$${response.new_balance}`;
-                console.log(`Available Balance: $${response.new_balance}`);
-            
-                // Update the account balance summary (at the top)
-                const accountBalanceSummaryElem = document.getElementById(`accountBalanceSummary${loopCounter}`);
-                accountBalanceSummaryElem.textContent = `$${response.new_balance}`;
-                console.log(`Account Balance Summary (Synced): $${response.new_balance}`);
-            
-                // Update the account balance detail (in the detailed section)
-                const accountBalanceDetailElem = document.getElementById(`accountBalanceDetail${loopCounter}`);
-                accountBalanceDetailElem.textContent = `$${response.new_balance}`;
-                console.log(`Account Balance Detail (Synced): $${response.new_balance}`);
-            
-                // Update transactions and chart (as you had it before)
-                const transactionTableBody = document.getElementById(`transactionsTable${loopCounter}`).getElementsByTagName('tbody')[0];
-                transactionTableBody.innerHTML = "";  // Clear existing rows
-                response.transactions.forEach(function(transaction) {
-                    const row = `<tr>
-                                    <td>${transaction.date}</td>
-                                    <td>${transaction.description}</td>
-                                    <td>${transaction.amount}</td>
-                                 </tr>`;
-                    transactionTableBody.insertAdjacentHTML('beforeend', row);
-                });
-            
-                // Safeguard: Ensure the chart exists before trying to update it
-                const chart = Chart.getChart(`chart${loopCounter}`);
-                if (chart) {
-                    chart.data.labels = response.chart_data.dates;
-                    chart.data.datasets[0].data = response.chart_data.balances;
-                    chart.update();
-                } else {
-                    console.error(`Chart for account ${loopCounter} not found.`);
-                }
-            
-                // Close modal on success
-                $('#depositModal').modal('hide');
-            },
-            error: function(error) {
-                console.error("Deposit failed:", error);
-                alert("An error occurred. Please try again.");
-            }
-        });
-    }
-    
-
-    function showWithdrawModal(accountId, loopCounter) {
-        document.getElementById('currentAccountIdWithdraw').value = accountId;
-        document.getElementById('currentLoopCounterWithdraw').value = loopCounter;
-        const withdrawModal = new bootstrap.Modal(document.getElementById('withdrawModal'), {});
-        withdrawModal.show();
-    }
-
-    function withdrawAmount() {
-        const withdrawValue = parseFloat(document.getElementById('withdrawAmount').value);
-        const accountId = document.getElementById('currentAccountIdWithdraw').value;
-        const loopCounter = document.getElementById('currentLoopCounterWithdraw').value;
-    
-        console.log("Withdraw Data: ", {
-            amount: withdrawValue,
-            account_id: accountId,
-        });
-    
-        if (withdrawValue <= 0 || withdrawValue > 5000 || isNaN(withdrawValue)) {
-            alert("Please enter a valid withdrawal amount (max $5000).");
-            return;
-        }
-    
-        $.ajax({
-            type: "POST",
-            url: "/accounts/withdraw/",
-            data: {
-                'amount': withdrawValue,
-                'account_id': accountId,
-                'csrfmiddlewaretoken': '{{ csrf_token }}',
-            },
-            success: function(response) {
-                console.log("Withdrawal successful: ", response);
-                document.getElementById(`accountBalance${loopCounter}`).textContent = `Balance: $${response.new_balance}`;
-                document.getElementById(`availableBalance${loopCounter}`).textContent = `$${response.new_balance}`;
-    
-                const transactionTableBody = document.getElementById(`transactionsTable${loopCounter}`).getElementsByTagName('tbody')[0];
-                transactionTableBody.innerHTML = "";  // Clear existing rows
-                response.transactions.forEach(function(transaction) {
-                    const row = `<tr>
-                                    <td>${transaction.date}</td>
-                                    <td>${transaction.description}</td>
-                                    <td>${transaction.amount}</td>`;
-                    transactionTableBody.insertAdjacentHTML('beforeend', row);
-                });
-    
-                const chart = Chart.getChart(`chart${loopCounter}`);
-                if (chart) {
-                    chart.data.labels = response.chart_data.dates;
-                    chart.data.datasets[0].data = response.chart_data.balances;
-                    chart.update();
-                }
-    
-                $('#withdrawModal').modal('hide');
-            },
-            error: function(error) {
-                console.error("Withdrawal failed: ", error);
-                alert("An error occurred. Please try again.");
-            }
-        });
-    }
-
     function toggleAccountDetails(accountId) {
         const accountDetails = document.getElementById('accountDetails' + accountId);
         const arrowIcon = document.getElementById('arrowIcon' + accountId);
-        
+
         if (accountDetails.style.maxHeight === "0px" || accountDetails.style.maxHeight === "") {
+            // Expand
             accountDetails.style.maxHeight = accountDetails.scrollHeight + "px";
             arrowIcon.classList.remove('fa-chevron-down');
             arrowIcon.classList.add('fa-chevron-up');
         } else {
+            // Collapse
             accountDetails.style.maxHeight = "0px";
             arrowIcon.classList.remove('fa-chevron-up');
             arrowIcon.classList.add('fa-chevron-down');
         }
     }
 
+    // On page load, set up the charts
     document.addEventListener('DOMContentLoaded', function() {
         const charts = document.querySelectorAll("[id^='chart-data-']");
         charts.forEach(function(chartElem, index) {
@@ -334,6 +161,4 @@
     });
 </script>
 
-<!-- Include FontAwesome for the arrow icon -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
-{% endblock %}
+{% endblock %}                 
