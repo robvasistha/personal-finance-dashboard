@@ -28,24 +28,61 @@
                             <h5>Available Balance: <span id="availableBalance{{ forloop.counter }}">${{ account.available_balance }}</span></h5>
                             
                             <h4 class="mt-4">Actions</h4>
-                            <!-- Deposit Form -->
-                            <form method="POST" action="/accounts/deposit/" class="mb-2">
-                                {% csrf_token %}
-                                <input type="hidden" name="account_id" value="{{ account.id }}">
-                                <label for="depositAmount{{ forloop.counter }}">Enter Deposit Amount (Max $25,000):</label>
-                                <input type="number" id="depositAmount{{ forloop.counter }}" name="amount" class="form-control" max="25000" step="0.01" required>
-                                <button type="submit" class="btn btn-primary mt-2">Deposit Amount</button>
-                            </form>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#depositModal{{ forloop.counter }}">Deposit Amount</button>
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#withdrawModal{{ forloop.counter }}">Withdraw Amount</button>
 
-                            <!-- Withdraw Form -->
-                            <form method="POST" action="/accounts/withdraw/">
-                                {% csrf_token %}
-                                <input type="hidden" name="account_id" value="{{ account.id }}">
-                                <label for="withdrawAmount{{ forloop.counter }}">Enter Withdraw Amount (Max $5,000):</label>
-                                <input type="number" id="withdrawAmount{{ forloop.counter }}" name="amount" class="form-control" max="5000" step="0.01" required>
-                                <button type="submit" class="btn btn-danger mt-2">Withdraw Amount</button>
-                            </form>
+                            <!-- Modal for Deposit -->
+                            <div class="modal fade" id="depositModal{{ forloop.counter }}" tabindex="-1" role="dialog">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/accounts/deposit/">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="account_id" value="{{ account.id }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Deposit Money</h5>
+                                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <label for="depositAmount">Enter Amount (Max $25,000):</label>
+                                                <input type="number" id="depositAmount" name="amount" class="form-control" max="25000" step="0.01" required>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary">Submit</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
 
+                            <!-- Modal for Withdraw -->
+                            <div class="modal fade" id="withdrawModal{{ forloop.counter }}" tabindex="-1" role="dialog">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/accounts/withdraw/">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="account_id" value="{{ account.id }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Withdraw Money</h5>
+                                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <label for="withdrawAmount">Enter Amount (Max $5,000):</label>
+                                                <input type="number" id="withdrawAmount" name="amount" class="form-control" max="5000" step="0.01" required>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary">Submit</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <!-- Transaction List -->
                             <h4 class="mt-4">Recent Transactions</h4>
                             {% if account.transactions %}
@@ -75,7 +112,9 @@
                             <!-- Balance Over Time Chart -->
                             {% if account.chart_dates and account.chart_balances %}
                             <h4 class="mt-4">Balance Over Time</h4>
-                            <canvas id="chart{{ forloop.counter }}" width="400" height="200"></canvas>
+                            <div style="position: relative; width: 100%; height: 300px;">
+                                <canvas id="chart{{ forloop.counter }}"></canvas>
+                            </div>
                             <div data-chart-dates="{{ account.chart_dates }}" data-chart-balances="{{ account.chart_balances }}" id="chart-data-{{ forloop.counter }}"></div>
                             {% else %}
                             <p>No chart data available for this account.</p>
@@ -89,7 +128,7 @@
     </div>
 </div>
 
-<!-- Include necessary scripts for charts -->
+<!-- Include Chart.js for the balance chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
 
@@ -104,15 +143,40 @@
             accountDetails.style.maxHeight = accountDetails.scrollHeight + "px";
             arrowIcon.classList.remove('fa-chevron-down');
             arrowIcon.classList.add('fa-chevron-up');
+
+            // Store expanded state in localStorage
+            localStorage.setItem('accountExpanded' + accountId, 'true');
         } else {
             // Collapse
             accountDetails.style.maxHeight = "0px";
             arrowIcon.classList.remove('fa-chevron-up');
             arrowIcon.classList.add('fa-chevron-down');
+
+            // Remove expanded state from localStorage
+            localStorage.setItem('accountExpanded' + accountId, 'false');
         }
     }
 
-    // On page load, set up the charts
+    // On page load, check localStorage for the expanded state and apply it
+    document.addEventListener('DOMContentLoaded', function() {
+        const accounts = document.querySelectorAll('.account-details');
+        accounts.forEach((accountDetail, index) => {
+            const accountId = index + 1;  // Assuming account IDs start from 1
+
+            // Check if this account was expanded in localStorage
+            const isExpanded = localStorage.getItem('accountExpanded' + accountId) === 'true';
+            if (isExpanded) {
+                const accountDetails = document.getElementById('accountDetails' + accountId);
+                const arrowIcon = document.getElementById('arrowIcon' + accountId);
+
+                // Expand the account
+                accountDetails.style.maxHeight = accountDetails.scrollHeight + "px";
+                arrowIcon.classList.remove('fa-chevron-down');
+                arrowIcon.classList.add('fa-chevron-up');
+            }
+        });
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         const charts = document.querySelectorAll("[id^='chart-data-']");
         charts.forEach(function(chartElem, index) {
@@ -139,6 +203,8 @@
                                 }]
                             },
                             options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
                                 scales: {
                                     x: {
                                         type: 'time',
@@ -160,5 +226,4 @@
         });
     });
 </script>
-
-{% endblock %}                 
+{% endblock %}

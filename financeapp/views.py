@@ -166,7 +166,7 @@ def accounts_page(request):
         )
         
         # Redirect back to the accounts page after successful transaction
-        return redirect('accounts_page')
+        return redirect('accounts')
 
     # Existing logic for GET requests (account display and chart generation)
     user_accounts = Account.objects.filter(user=request.user)
@@ -272,12 +272,12 @@ def deposit_amount(request):
         account_id = request.POST.get('account_id')
 
         if not account_id:
-            return redirect('accounts_page')  # Redirect on error
+            return redirect('accounts')  # Redirect on error
 
         try:
             account = Account.objects.get(id=account_id, user=request.user)
         except Account.DoesNotExist:
-            return redirect('accounts_pae')  # Redirect on invalid account
+            return redirect('accounts')  # Redirect on invalid account
 
         try:
             amount = Decimal(amount)  # Convert to Decimal
@@ -337,7 +337,7 @@ def withdraw_amount(request):
             else:
                 return redirect('accounts')  # Redirect on insufficient funds
 
-    return redirect('accounts')
+    return redirect('accounts')  # Always redirect after processing
 
 @login_required
 def generate_demo_accounts(request):
@@ -363,7 +363,7 @@ def generate_demo_accounts(request):
                 )
 
             # After generating demo accounts, redirect to the accounts page
-            return redirect('accounts_page')
+            return redirect('accounts')
         except Exception as e:
             print(f"Error generating demo accounts: {e}")
             return JsonResponse({'error': str(e)}, status=400)
