@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from plaid import ApiClient,Configuration
 from plaid.api import plaid_api
 from plaid.model.accounts_get_request import AccountsGetRequest
@@ -369,3 +369,50 @@ def generate_demo_accounts(request):
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+def transfer_money(request):
+    if request.method == 'POST':
+        try:
+            from_account_id = request.POST.get('from_account_id')
+            to_account_id = request.POST.get('to_account_id')
+            amount = Decimal(request.POST.get('amount'))
+
+            # Fetch the accounts
+            from_account = get_object_or_404(Account, id=from_account_id, user=request.user)
+            to_account = get_object_or_404(Account, id=to_account_id, user=request.user)
+
+            # Ensure enough balance in the from account for the transfer
+            if from_account.balance >= amount:
+                # Withdraw from the 'from' account
+                from_account.balance -= amount
+                from_account.save()
+
+                # Deposit into the 'to' account
+                to_account.balance += amount
+                to_account.save()
+
+                # Create transaction entries for both accounts
+                Transaction.objects.create(
+                    account=from_account, 
+                    amount=-amount, 
+                    description=f"Transfer to {to_account.name}"
+                    # created_at will automatically be filled
+                )
+                Transaction.objects.create(
+                    account=to_account, 
+                    amount=amount, 
+                    description=f"Transfer from {from_account.name}"
+                    # created_at will automatically be filled
+                )
+
+                # Redirect or return a success response
+                return redirect('accounts')
+
+            else:
+                return JsonResponse({'error': 'Insufficient funds in the selected account'}, status=400)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+

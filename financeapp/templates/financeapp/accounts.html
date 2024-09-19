@@ -30,7 +30,7 @@
                             <h4 class="mt-4">Actions</h4>
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#depositModal{{ forloop.counter }}">Deposit Amount</button>
                             <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#withdrawModal{{ forloop.counter }}">Withdraw Amount</button>
-
+                            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#transferModal{{ forloop.counter }}">Transfer</button>
                             <!-- Modal for Deposit -->
                             <div class="modal fade" id="depositModal{{ forloop.counter }}" tabindex="-1" role="dialog">
                                 <div class="modal-dialog" role="document">
@@ -73,6 +73,42 @@
                                             <div class="modal-body">
                                                 <label for="withdrawAmount">Enter Amount (Max $5,000):</label>
                                                 <input type="number" id="withdrawAmount" name="amount" class="form-control" max="5000" step="0.01" required>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary">Submit</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal for Transfers -->
+                            <div class="modal fade" id="transferModal{{ forloop.counter }}" tabindex="-1" role="dialog">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <form method="POST" action="/accounts/transfer/">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="from_account_id" value="{{ account.id }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Transfer Money</h5>
+                                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <label for="transferAmount">Enter Amount:</label>
+                                                <input type="number" id="transferAmount" name="amount" class="form-control" required>
+
+                                                <label for="to_account_id" class="mt-3">Select Account to Transfer To:</label>
+                                                <select id="to_account_id" name="to_account_id" class="form-control" required>
+                                                    <!-- Loop through all accounts except the one you're transferring from -->
+                                                    {% for other_account in accounts %}
+                                                    {% if other_account.id != account.id %}
+                                                    <option value="{{ other_account.id }}">{{ other_account.name }} (Balance: ${{ other_account.balance }})</option>
+                                                    {% endif %}
+                                                    {% endfor %}
+                                                </select>
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="submit" class="btn btn-primary">Submit</button>

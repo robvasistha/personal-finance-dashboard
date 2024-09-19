@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class Account(models.Model):
     """
@@ -22,7 +23,7 @@ class Transaction(models.Model):
     """
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
     plaid_transaction_id = models.CharField(max_length=100, unique=True, null=True, blank=True)  # Plaid's Transaction ID
-    date = models.DateTimeField()
+    date = models.DateTimeField(default=timezone.now)
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     category = models.CharField(max_length=100, null=True, blank=True)  # e.g., 'Groceries', 'Utilities'
