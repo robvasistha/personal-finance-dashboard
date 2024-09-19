@@ -31,6 +31,10 @@
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#depositModal{{ forloop.counter }}">Deposit Amount</button>
                             <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#withdrawModal{{ forloop.counter }}">Withdraw Amount</button>
                             <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#transferModal{{ forloop.counter }}">Transfer</button>
+                            
+                            <!-- JS linting + Django formatting mishap - ignore error. -->
+                            <button class="btn btn-secondary" onclick="window.location.href='{% url 'download_csv' account.id %}';">Download CSV</button>
+
                             <!-- Modal for Deposit -->
                             <div class="modal fade" id="depositModal{{ forloop.counter }}" tabindex="-1" role="dialog">
                                 <div class="modal-dialog" role="document">

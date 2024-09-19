@@ -243,12 +243,15 @@ def download_csv(request, account_id):
     account = Account.objects.get(id=account_id)
     transactions = Transaction.objects.filter(account=account)
     
+    # Set up the response with content type 'text/csv'
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{account.name}_transactions.csv"'
 
     writer = csv.writer(response)
+    # Write the CSV headers
     writer.writerow(['Date', 'Description', 'Amount', 'Category'])
     
+    # Write each transaction's data
     for transaction in transactions:
         writer.writerow([transaction.date, transaction.description, transaction.amount, transaction.category])
 
