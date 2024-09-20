@@ -20,4 +20,5 @@ urlpatterns = [
     path('account/<int:account_id>/transactions/', views.account_transactions, name='account_transactions'),
     path('account/<int:account_id>/download_csv/', views.download_csv, name='download_csv'),
     path('balances/', views.fetch_account_balances, name='plaid_balance_view'),
+    path('generate_demo_accounts/', views.generate_demo_accounts, name='generate_demo_accounts'),
 ]

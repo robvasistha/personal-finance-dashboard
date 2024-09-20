@@ -171,7 +171,7 @@ def accounts_page(request):
     # Existing logic for GET requests (account display and chart generation)
     user_accounts = Account.objects.filter(user=request.user)
     accounts = []
-
+    no_accounts = not user_accounts.exists()
     for account in user_accounts:
         transactions = Transaction.objects.filter(account=account).order_by('date')
 
@@ -211,7 +211,10 @@ def accounts_page(request):
             'chart_balances': json.dumps(balances),
         })
 
-    return render(request, 'financeapp/accounts.html', {'accounts': accounts})
+    return render(request, 'financeapp/accounts.html', {
+        'accounts': accounts,
+        'no_accounts': no_accounts  
+    })
 
 
 
@@ -344,34 +347,48 @@ def withdraw_amount(request):
 
 @login_required
 def generate_demo_accounts(request):
-    """
-    Generate demo accounts using the Plaid API and associate them with the current user.
-    """
-    if request.method == 'POST':
-        try:
-            # Plaid API call to simulate accounts and transactions
-            # Make the necessary Plaid API requests here, e.g., fetching accounts and transactions
-            access_token = config('PLAID_ACCESS_TOKEN')
-            # Example: Simulate account generation using the Plaid API
-            accounts_request = AccountsGetRequest(access_token=access_token)
-            response = client.accounts_get(accounts_request)
+    try:
+        # Plaid API to simulate accounts and transactions in the sandbox
+        access_token = config('PLAID_ACCESS_TOKEN')
+        accounts_request = AccountsGetRequest(access_token=access_token)
+        response = client.accounts_get(accounts_request)
 
-            # Loop over the accounts and save them to the user's account list
-            for account_data in response['accounts']:
-                Account.objects.create(
-                    user=request.user,
-                    name=account_data['name'],
-                    balance=account_data['balances']['current'],
-                    account_type=account_data['subtype']
+        # Loop over the accounts and save them to the database
+        for account_data in response['accounts']:
+            account = Account.objects.create(
+                user=request.user,
+                name=account_data['name'],
+                balance=account_data['balances']['current'],
+                account_type=account_data['subtype']
+            )
+
+            # Use actual datetime.date objects for the start and end dates
+            start_date = datetime(2023, 1, 1).date()  # Example start date
+            end_date = datetime(2024, 1, 1).date()    # Example end date
+
+            # Generate some fake transactions for the account
+            transactions_request = TransactionsGetRequest(
+                access_token=access_token,
+                start_date=start_date,
+                end_date=end_date
+                # Remove 'account_ids' as it's not valid in the sandbox
+            )
+            transactions_response = client.transactions_get(transactions_request)
+
+            for txn in transactions_response['transactions']:
+                Transaction.objects.create(
+                    account=account,
+                    date=txn['date'],
+                    description=txn['name'],
+                    amount=txn['amount']
                 )
 
-            # After generating demo accounts, redirect to the accounts page
-            return redirect('accounts')
-        except Exception as e:
-            print(f"Error generating demo accounts: {e}")
-            return JsonResponse({'error': str(e)}, status=400)
+        return redirect('accounts')  # After generating, redirect to the accounts page
 
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+    except Exception as e:
+        print(f"Error generating demo accounts: {e}")
+        return JsonResponse({'error': str(e)}, status=400)
+    
 
 def transfer_money(request):
     if request.method == 'POST':

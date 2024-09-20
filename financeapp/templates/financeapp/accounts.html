@@ -11,6 +11,12 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="accordion" id="accountsAccordion">
+                {% if no_accounts %}
+                    <div class="text-center mt-5">
+                        <p>No accounts found. Generate demo accounts to see transactions.</p>
+                        <a href="{% url 'generate_demo_accounts' %}" class="btn btn-primary">Generate Demo Accounts</a>
+                    </div>
+                {% endif %}
                 {% for account in accounts %}
                 <div class="account-card border-0 shadow-sm mb-4 rounded">
                     <div class="d-flex justify-content-between w-100 p-3 bg-white rounded" style="box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
