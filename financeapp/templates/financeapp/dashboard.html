@@ -3,10 +3,11 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
+
 <div class="container mt-5">
     <header class="text-center mb-5">
         <h1 class="display-6 fw-bold">Your Finance Overview</h1>
-        <p class="lead">A quick glance at your accounts and recent transactions.</p>
+        <p class="lead">A quick glance at your account and recent transactions.</p>
     </header>
 </div>
 
@@ -14,12 +15,12 @@
     <div class="row">
         <!-- Left Side: Account Balance -->
         <div class="col-md-6 d-flex align-items-stretch mb-4">
-            <div class="card border-0 shadow-sm p-4 flex-fill">
+            <div class="card border-0 shadow-sm p-4 flex-fill text-center">
                 <h3 class="mb-3">Account Balance</h3>
                 <h1 class="display-4 text-primary">{{ total_balance|default:"$0.00" }}</h1>
                 <p class="text-muted">Growth From Yesterday: {{ growth|default:"0%" }}</p>
                 <div class="mt-auto">
-                    <button class="btn btn-dark btn-lg w-100">Withdraw Amount</button>
+                    <a href="{% url 'accounts' %}" class="btn btn-dark btn-lg w-100">Go to Accounts</a>
                 </div>
             </div>
         </div>
@@ -32,15 +33,24 @@
                     {% for transaction in recent_transactions %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <span>{{ transaction.description }}</span>
-                        <span class="badge bg-success">{{ transaction.amount }}</span>
+                        <span class="badge {% if transaction.amount > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ transaction.amount }}
+                        </span>
                     </li>
                     {% empty %}
                     <li class="list-group-item text-center">No recent transactions found.</li>
                     {% endfor %}
                 </ul>
-                <div class="mt-auto">
-                    <button class="btn btn-primary btn-lg w-100 mt-3">View All Transactions</button>
-                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Tracking Coming Soon -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="blue-box text-center">
+                <h2>Budget tracking coming soon!</h2>
             </div>
         </div>
     </div>
