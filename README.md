@@ -1,5 +1,5 @@
 # personal-finance-dashboard
-Welcome to the Personal Finance Dashboard, a finance management web application that allows users to track, manage, and visualize their financial data through Plaid's sandbox API. This project is designed to demonstrate full stack development using Python, Flask, PostgreSQL, AWS Elastic Beanstalk, and Plaid API integration. It showcases key features like account generation, transaction tracking, and live charting of account balances, making it an excellent portfolio piece for backend, frontend, and full stack development.
+Welcome to the Personal Finance Dashboard, a finance management web application that allows users to track, manage, and visualize their financial data through Plaid's sandbox API. This project is designed to demonstrate full stack development using Python, Flask, PostgreSQL, Render, and Plaid API integration. It showcases key features like account generation, transaction tracking, and live charting of account balances, making it an excellent portfolio piece for backend, frontend, and full stack development.
 
 ## 🚀 Live Demo
 The project is hosted on Render, making it accessible to users in real-time. Simply visit the hosted URL, register for an account, and get started with demo financial accounts.
