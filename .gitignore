@@ -18,6 +18,3 @@ pfinance/
 # MacOS
 .DS_Store
 
-#ElasticBeanstalk
-.elasticbeanstalk
-

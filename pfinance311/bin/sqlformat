@@ -1,4 +1,4 @@
-#!/home/robv/pfinance_project/pfinance311/bin/python3.11
+#!/home/robv/pfinance_project/pfinance311/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
