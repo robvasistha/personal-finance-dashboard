@@ -97,7 +97,7 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Authentication settings
-LOGIN_URL = '/accounts/login/'
+LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'home'
 
 AUTHENTICATION_BACKENDS = ['financeapp.backends.EmailOrUsernameModelBackend', 'django.contrib.auth.backends.ModelBackend']
