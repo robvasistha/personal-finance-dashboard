@@ -2,7 +2,7 @@
 Welcome to the Personal Finance Dashboard, a finance management web application that allows users to track, manage, and visualize their financial data through Plaid's sandbox API. This project is designed to demonstrate full stack development using Python, Flask, PostgreSQL, AWS Elastic Beanstalk, and Plaid API integration. It showcases key features like account generation, transaction tracking, and live charting of account balances, making it an excellent portfolio piece for backend, frontend, and full stack development.
 
 ## 🚀 Live Demo
-The project is hosted on AWS Elastic Beanstalk, making it accessible to users in real-time. Simply visit the hosted URL, register for an account, and get started with demo financial accounts.
+The project is hosted on Render, making it accessible to users in real-time. Simply visit the hosted URL, register for an account, and get started with demo financial accounts.
 
 ## 📋 Table of Contents
 Overview
@@ -23,7 +23,7 @@ The Personal Finance Dashboard is a comprehensive tool for managing finances, al
 - Visualise account balances over time using Chart.js.
 - Export transaction histories as CSV files for easy financial analysis.
 
-This project demonstrates my ability to build a full stack web application and integrate various third-party APIs while ensuring that the project is scalable through cloud hosting on AWS Elastic Beanstalk.
+This project demonstrates my ability to build a full stack web application and integrate various third-party APIs while ensuring that the project is scalable through cloud hosting on Render.
 
 ## ✨ Features
 ### Current Features:
@@ -35,7 +35,7 @@ This project demonstrates my ability to build a full stack web application and i
   - View recent transactions, filtered by date and time.
 - **Balance Over Time Visualisation**: Account balances are displayed over time in easy-to-read charts using Chart.js.
 - **CSV Export**: Export your account's transaction history as a CSV file with one click.
-- **Hosted on AWS**: The app is fully deployed and live on AWS Elastic Beanstalk, ensuring reliability and scalability.
+- **Hosted on Hosted on Render**: The app is fully deployed and live on Render, ensuring reliability and scalability.
 
 ### Planned Features:
 - **Two-Factor Authentication (2FA)**: Secure user accounts further by implementing 2FA via email verification during login.
@@ -54,7 +54,7 @@ This project is built using a robust stack of modern technologies:
 - **Django**: For authentication and managing user sessions.
 - **Plaid API**: To generate demo financial accounts and transactions.
 - **Chart.js**: For rendering dynamic charts that visualise account balances over time.
-- **AWS Elastic Beanstalk**: For hosting and scaling the web application.
+- **Render**: For hosting and scaling the web application.
 - **HTML5/CSS3/Bootstrap 5**: For the front-end layout, ensuring responsive design and ease of use.
 - **JavaScript (ES6)**: For client-side interactivity.
 - **Git/GitHub**: Version control and collaboration.
