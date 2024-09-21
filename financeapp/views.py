@@ -168,10 +168,11 @@ def accounts_page(request):
         # Redirect back to the accounts page after successful transaction
         return redirect('accounts')
 
-    # Existing logic for GET requests (account display and chart generation)
-    user_accounts = Account.objects.filter(user=request.user)
+    # Modify query to order accounts by 'id'
+    user_accounts = Account.objects.filter(user=request.user).order_by('id')
     accounts = []
     no_accounts = not user_accounts.exists()
+
     for account in user_accounts:
         transactions = Transaction.objects.filter(account=account).order_by('date')
 
@@ -215,6 +216,8 @@ def accounts_page(request):
         'accounts': accounts,
         'no_accounts': no_accounts  
     })
+
+
 
 
 

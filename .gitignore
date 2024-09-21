@@ -18,3 +18,4 @@ pfinance/
 # MacOS
 .DS_Store
 
+db_backup.sql

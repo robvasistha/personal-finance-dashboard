@@ -78,13 +78,14 @@ WSGI_APPLICATION = 'pfinance_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DATABASE_NAME'),
-        'USER': config('DATABASE_USER'),
-        'PASSWORD': config('DATABASE_PASSWORD'),
-        'HOST': config('DATABASE_HOST'),
-        'PORT': config('DATABASE_PORT'),
+        'NAME': 'pfinancedb',
+        'USER': 'robv',
+        'PASSWORD': 'gxTrYhIO53Xwu3CmYNP6wwlhSIQbPQlg',
+        'HOST': 'dpg-crnakhd6l47c73acdsq0-a.frankfurt-postgres.render.com',
+        'PORT': '5432',
     }
 }
+
 
 
 
